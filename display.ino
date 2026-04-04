@@ -1,36 +1,72 @@
+static String displayedUID1 = "";
+static String displayedUID2 = "";
+static bool displayedRFID1Ok = false;
+static bool displayedRFID2Ok = false;
+static bool rfidStatusFrameDrawn = false;
+
+static int displayedTouchRawX = -1;
+static int displayedTouchRawY = -1;
+static int displayedTouchZ = -1;
+
 void drawRFIDStatus() {
   deselectAllSPIDevices();
-  tft.fillRect(10, 156, 300, 74, ILI9341_BLACK);
-  tft.drawRect(10, 156, 300, 74, ILI9341_BLUE);
+
+  if (!rfidStatusFrameDrawn) {
+    tft.fillRect(10, 156, 300, 74, ILI9341_BLACK);
+    tft.drawRect(10, 156, 300, 74, ILI9341_BLUE);
+    rfidStatusFrameDrawn = true;
+  }
 
   tft.setTextSize(1);
 
-  tft.setCursor(18, 164);
-  tft.setTextColor(ILI9341_WHITE);
-  tft.print("RFID1: ");
-  tft.setTextColor(rfid1Ok ? ILI9341_GREEN : ILI9341_RED);
-  tft.print(rfid1Ok ? "OK" : "FAIL");
+  if (displayedRFID1Ok != rfid1Ok || displayedUID1 != lastUID1) {
+    tft.fillRect(18, 164, 284, 24, ILI9341_BLACK);
 
-  tft.setCursor(18, 176);
-  tft.setTextColor(ILI9341_WHITE);
-  tft.print("UID1: ");
-  tft.print(lastUID1);
+    tft.setCursor(18, 164);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.print("RFID1: ");
+    tft.setTextColor(rfid1Ok ? ILI9341_GREEN : ILI9341_RED);
+    tft.print(rfid1Ok ? "OK" : "FAIL");
 
-  tft.setCursor(18, 196);
-  tft.setTextColor(ILI9341_WHITE);
-  tft.print("RFID2: ");
-  tft.setTextColor(rfid2Ok ? ILI9341_GREEN : ILI9341_RED);
-  tft.print(rfid2Ok ? "OK" : "FAIL");
+    tft.setCursor(18, 176);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.print("UID1: ");
+    tft.print(lastUID1);
+  }
 
-  tft.setCursor(18, 208);
-  tft.setTextColor(ILI9341_WHITE);
-  tft.print("UID2: ");
-  tft.print(lastUID2);
+  if (displayedRFID2Ok != rfid2Ok || displayedUID2 != lastUID2) {
+    tft.fillRect(18, 196, 284, 24, ILI9341_BLACK);
+
+    tft.setCursor(18, 196);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.print("RFID2: ");
+    tft.setTextColor(rfid2Ok ? ILI9341_GREEN : ILI9341_RED);
+    tft.print(rfid2Ok ? "OK" : "FAIL");
+
+    tft.setCursor(18, 208);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.print("UID2: ");
+    tft.print(lastUID2);
+  }
+
+  displayedRFID1Ok = rfid1Ok;
+  displayedRFID2Ok = rfid2Ok;
+  displayedUID1 = lastUID1;
+  displayedUID2 = lastUID2;
 }
 
 void drawStatusScreen() {
   deselectAllSPIDevices();
   tft.fillScreen(ILI9341_BLACK);
+
+  rfidStatusFrameDrawn = false;
+  displayedRFID1Ok = !rfid1Ok;
+  displayedRFID2Ok = !rfid2Ok;
+  displayedUID1 = "";
+  displayedUID2 = "";
+  displayedTouchRawX = -1;
+  displayedTouchRawY = -1;
+  displayedTouchZ = -1;
 
   printCentered("GWENT TABLE TEST", 8, ILI9341_YELLOW, 2);
 
@@ -62,25 +98,42 @@ void drawStatusScreen() {
 }
 
 void showTouchData(int rawX, int rawY, int z) {
-  int screenX = map(rawX, touchMinX, touchMaxX, 0, tft.width() - 1);
-  int screenY = map(rawY, touchMinY, touchMaxY, 0, tft.height() - 1);
+  int screenX = map(rawX, touchMinX, touchMaxX, tft.width() - 1, 0);
+  int screenY = map(rawY, touchMinY, touchMaxY, tft.height() - 1, 0);
 
   screenX = constrain(screenX, 0, tft.width() - 1);
   screenY = constrain(screenY, 0, tft.height() - 1);
 
-  deselectAllSPIDevices();
-  tft.fillRect(150, 112, 155, 20, ILI9341_BLACK);
-  tft.setTextColor(ILI9341_GREEN);
-  tft.setTextSize(1);
-  tft.setCursor(155, 118);
-  tft.printf("X:%d Y:%d Z:%d", rawX, rawY, z);
+  if (screenX == lastTouchScreenX &&
+      screenY == lastTouchScreenY &&
+      rawX == displayedTouchRawX &&
+      rawY == displayedTouchRawY &&
+      z == displayedTouchZ) {
+    return;
+  }
 
-  if (lastTouchScreenX >= 0 && lastTouchScreenY >= 0) {
+  deselectAllSPIDevices();
+  if (rawX != displayedTouchRawX || rawY != displayedTouchRawY || z != displayedTouchZ) {
+    tft.fillRect(150, 112, 155, 20, ILI9341_BLACK);
+    tft.setTextColor(ILI9341_GREEN);
+    tft.setTextSize(1);
+    tft.setCursor(155, 118);
+    tft.printf("X:%d Y:%d Z:%d", rawX, rawY, z);
+  }
+
+  if ((screenX != lastTouchScreenX || screenY != lastTouchScreenY) &&
+      lastTouchScreenX >= 0 && lastTouchScreenY >= 0) {
     tft.fillCircle(lastTouchScreenX, lastTouchScreenY, 2, ILI9341_BLACK);
   }
-  tft.fillCircle(screenX, screenY, 2, ILI9341_RED);
+  if (screenX != lastTouchScreenX || screenY != lastTouchScreenY) {
+    tft.fillCircle(screenX, screenY, 2, ILI9341_RED);
+  }
+
   lastTouchScreenX = screenX;
   lastTouchScreenY = screenY;
+  displayedTouchRawX = rawX;
+  displayedTouchRawY = rawY;
+  displayedTouchZ = z;
 }
 
 void drawPlayMessage(const char* msg, uint16_t color) {
