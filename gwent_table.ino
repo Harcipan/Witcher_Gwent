@@ -13,10 +13,10 @@
 // Pin setup
 // =========================
 
-// Shared SPI bus
+// Shared SPI bus (SD card + both MFRC522 readers)
 #define SPI_SCK   18
-#define SPI_MISO  19
-#define SPI_MOSI  23
+#define SPI_MISO  23
+#define SPI_MOSI  19
 
 // TFT
 #define TFT_CS    5
@@ -32,13 +32,18 @@
 
 // Audio I2S -> PCM5102
 #define I2S_BCK   26
-#define I2S_WS    27
-#define I2S_DOUT  25
+#define I2S_WS    27  //RCK
+#define I2S_DOUT  25  // PCM5102 DIN
 
 // RFID MFRC522
 #define RFID_RST  14
-#define RFID1_SS  21
-#define RFID2_SS  22
+#define RFID1_SS  22  // Upper reader SDA/SS //top down 4th
+#define RFID2_SS  17  // Lower reader SDA/SS //top down 6th
+//RFID3 21 //top down 5th
+//RFID4 16 //top down 3rd
+//RFID5 33 //top-down 2nd
+//RFID6 32 //top-down 1st
+
 
 // =========================
 // Objects
