@@ -266,7 +266,7 @@ void serviceAudio() {
       pendingTrack = "";
       startWavFromSD(next.c_str());
     } else {
-      drawStatusScreen();
+      onAudioPlaybackFinished();
     }
     return;
   }
@@ -279,7 +279,7 @@ void serviceAudio() {
   if (actuallyRead <= 0) {
     Serial.println("Read error during playback");
     stopWavPlayback();
-    drawStatusScreen();
+    onAudioPlaybackFinished();
     return;
   }
 

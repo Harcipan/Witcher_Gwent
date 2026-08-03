@@ -5,6 +5,7 @@
 #include <Adafruit_ILI9341.h>
 #include <XPT2046_Touchscreen.h>
 #include <driver/i2s.h>
+#include <esp_system.h>
 #include <MFRC522.h>
 #include "shared_defs.h"
 
@@ -71,6 +72,7 @@ String lastUID1 = "NONE";
 String lastUID2 = "NONE";
 int lastTouchScreenX = -1;
 int lastTouchScreenY = -1;
+bool touchPressedLatched = false;
 
 uint32_t lastTouchMs = 0;
 uint32_t lastTouchDrawMs = 0;
@@ -114,7 +116,7 @@ void setup() {
   audioOk = initI2S();
   initRFIDReaders();
 
-  drawStatusScreen();
+  startNewGame();
   Serial.println("Setup complete.");
 
   if (sdOk && audioOk) {
@@ -132,13 +134,18 @@ void loop() {
 
   uint32_t now = millis();
 
+  if (touchOk && digitalRead(TOUCH_IRQ) != LOW) {
+    touchPressedLatched = false;
+  }
+
   if (touchOk && (now - lastTouchMs >= currentTouchPollInterval()) && digitalRead(TOUCH_IRQ) == LOW) {
     deselectAllSPIDevices();
     TS_Point p = ts.getPoint();
 
-    if (now - lastTouchDrawMs >= currentTouchDrawInterval()) {
-      showTouchData(p.x, p.y, p.z);
+    if (!touchPressedLatched && now - lastTouchDrawMs >= currentTouchDrawInterval()) {
+      handleTouchScreenPressed(p.x, p.y);
       lastTouchDrawMs = now;
+      touchPressedLatched = true;
     }
 
     Serial.printf("Touch raw -> X:%d Y:%d Z:%d\n", p.x, p.y, p.z);
@@ -149,16 +156,16 @@ void loop() {
   if (rfid1Ok && (now - lastRFID1Ms >= currentRFIDPollInterval())) {
     lastRFID1Ms = now;
     if (pollRFID(rfid1, lastUID1, "RFID1") && (now - lastRFIDDrawMs >= currentRFIDDrawInterval())) {
-      drawRFIDStatus();
+      handleRFIDCardScanned(0, lastUID1);
       lastRFIDDrawMs = now;
+      return;
     }
-    return;
   }
 
   if (rfid2Ok && (now - lastRFID2Ms >= currentRFIDPollInterval())) {
     lastRFID2Ms = now;
     if (pollRFID(rfid2, lastUID2, "RFID2") && (now - lastRFIDDrawMs >= currentRFIDDrawInterval())) {
-      drawRFIDStatus();
+      handleRFIDCardScanned(1, lastUID2);
       lastRFIDDrawMs = now;
     }
   }
