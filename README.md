@@ -16,7 +16,7 @@ played through an I2S DAC.
 | Touchscreen | XPT2046 | Overlaid on TFT |
 | Audio DAC | PCM5102 | Connected via I2S |
 | Storage | MicroSD card | WAV audio + animation assets |
-| Card readers | 2× MFRC522 RFID | One per player |
+| Card readers | 6× MFRC522 RFID | 3 per player |
 
 All SPI peripherals share the same SCK/MISO/MOSI lines. CS pins are managed manually
 (all deselected before switching devices).
