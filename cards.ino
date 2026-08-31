@@ -16,11 +16,11 @@ const CardDef cardPool[] = {
   { "00:00:00:00:00:00:0A", "Olgierd von Everec",             6, ABILITY_MORALE_BOOST     }, // Neutral | Melee/Ranged | Agile
   { "00:00:00:00:00:00:0B", "Roach",                          3, ABILITY_NONE             }, // Neutral | Melee
   { "00:00:00:00:00:00:0C", "Vesemir",                        6, ABILITY_NONE             }, // Neutral | Melee
-  { "00:00:00:00:00:00:0D", "Villentretenmerth",              7, ABILITY_DESTROY_STRONGEST}, // Neutral | Melee  | Scorch-Melee
+  { "00:00:00:00:00:00:0D", "Villentretenmerth",              7, ABILITY_SCORCH}, // Neutral | Melee  | Scorch-Melee
   { "00:00:00:00:00:00:0E", "Zoltan Chivay",                  5, ABILITY_NONE             }, // Neutral | Melee
   { "00:00:00:00:00:00:0F", "Bovine Defense Force",           8, ABILITY_NONE             }, // Neutral | Melee  | Summoned by Cow removal
   { "00:00:00:00:00:00:10", "Cow",                            0, ABILITY_NONE             }, // Neutral | Ranged | Summons Bovine Defense Force when removed
-  { "00:00:00:00:00:00:11", "Scorch",                         0, ABILITY_DESTROY_STRONGEST}, // Neutral | Special
+  { "00:00:00:00:00:00:11", "Scorch",                         0, ABILITY_SCORCH}, // Neutral | Special
   { "00:00:00:00:00:00:12", "Commander's Horn",               0, ABILITY_COMMANDERS_HORN  }, // Neutral | Special
   { "00:00:00:00:00:00:13", "Decoy",                          0, ABILITY_NONE             }, // Neutral | Special
   { "00:00:00:00:00:00:14", "Biting Frost",                   0, ABILITY_NONE             }, // Neutral | Special | Weather: sets all Melee to 1
@@ -106,7 +106,7 @@ const CardDef cardPool[] = {
   { "00:00:00:00:00:00:5E", "Mahakaman Defender",             5, ABILITY_NONE             }, // Scoia'tael | Melee
   { "00:00:00:00:00:00:5F", "Milva",                         10, ABILITY_MORALE_BOOST     }, // Scoia'tael | Ranged
   { "00:00:00:00:00:00:60", "Riordain",                       1, ABILITY_NONE             }, // Scoia'tael | Ranged
-  { "00:00:00:00:00:00:61", "Schirru",                        8, ABILITY_DESTROY_STRONGEST}, // Scoia'tael | Siege  | Scorch-Siege
+  { "00:00:00:00:00:00:61", "Schirru",                        8, ABILITY_SCORCH}, // Scoia'tael | Siege  | Scorch-Siege
   { "00:00:00:00:00:00:62", "Toruviel",                       2, ABILITY_NONE             }, // Scoia'tael | Ranged
   { "00:00:00:00:00:00:63", "Vrihedd Brigade Recruit",        4, ABILITY_NONE             }, // Scoia'tael | Ranged
   { "00:00:00:00:00:00:64", "Vrihedd Brigade Veteran",        5, ABILITY_AGILE            }, // Scoia'tael | Melee/Ranged
@@ -140,7 +140,7 @@ const CardDef cardPool[] = {
   { "00:00:00:00:00:00:7E", "Ice Giant",                      5, ABILITY_NONE             }, // Monsters | Siege
   { "00:00:00:00:00:00:7F", "Nekker",                         2, ABILITY_MUSTER           }, // Monsters | Melee
   { "00:00:00:00:00:00:80", "Plague Maiden",                  5, ABILITY_NONE             }, // Monsters | Melee
-  { "00:00:00:00:00:00:81", "Toad",                           7, ABILITY_DESTROY_STRONGEST}, // Monsters | Ranged | Scorch-Ranged
+  { "00:00:00:00:00:00:81", "Toad",                           7, ABILITY_SCORCH}, // Monsters | Ranged | Scorch-Ranged
   { "00:00:00:00:00:00:82", "Vampire: Bruxa",                 4, ABILITY_MUSTER           }, // Monsters | Melee
   { "00:00:00:00:00:00:83", "Vampire: Ekimmara",              4, ABILITY_MUSTER           }, // Monsters | Melee
   { "00:00:00:00:00:00:84", "Vampire: Fleder",                4, ABILITY_MUSTER           }, // Monsters | Melee
@@ -158,7 +158,7 @@ const CardDef cardPool[] = {
   { "00:00:00:00:00:00:8E", "Birna Bran",                     2, ABILITY_MEDIC            }, // Skellige | Melee
   { "00:00:00:00:00:00:8F", "Blueboy Lugos",                  6, ABILITY_NONE             }, // Skellige | Melee
   { "00:00:00:00:00:00:90", "Clan Brokvar Archer",            6, ABILITY_NONE             }, // Skellige | Ranged
-  { "00:00:00:00:00:00:91", "Clan Dimun Pirate",              6, ABILITY_DESTROY_STRONGEST}, // Skellige | Ranged | Scorch
+  { "00:00:00:00:00:00:91", "Clan Dimun Pirate",              6, ABILITY_SCORCH}, // Skellige | Ranged | Scorch
   { "00:00:00:00:00:00:92", "Clan Drummond Shield Maiden",    4, ABILITY_TIGHT_BOND       }, // Skellige | Melee
   { "00:00:00:00:00:00:93", "Clan Heymaey Skald",             4, ABILITY_NONE             }, // Skellige | Melee
   { "00:00:00:00:00:00:94", "Clan Tordarroch Armorsmith",     4, ABILITY_NONE             }, // Skellige | Melee

@@ -128,7 +128,7 @@ const char *abilityName(CardAbility ability) {
     case ABILITY_TIGHT_BOND:       return "Tight Bond";
     case ABILITY_MORALE_BOOST:     return "Morale Boost";
     case ABILITY_AGILE:            return "Agile";
-    case ABILITY_DESTROY_STRONGEST:return "Scorch";
+    case ABILITY_SCORCH:return "Scorch";
     case ABILITY_COMMANDERS_HORN:  return "Cmdr's Horn";
     case ABILITY_NONE:
     default:                       return "None";
@@ -174,7 +174,7 @@ int findStrongestDestroyableCard(uint8_t playerIndex) {
 
 void applyCardAbility(uint8_t playerIndex, const CardDef &card) {
   switch (card.ability) {
-    case ABILITY_DESTROY_STRONGEST: {
+    case ABILITY_SCORCH: {
       uint8_t opponent = 1 - playerIndex;
       int slot = findStrongestDestroyableCard(opponent);
       if (slot < 0) {

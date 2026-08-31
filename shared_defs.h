@@ -22,7 +22,7 @@ enum CardAbility : uint8_t {
   ABILITY_TIGHT_BOND,       // doubles strength with adjacent same-named card
   ABILITY_MORALE_BOOST,     // adds +1 to all units in the row
   ABILITY_AGILE,            // can be placed in close or ranged row
-  ABILITY_DESTROY_STRONGEST,// scorch: kills the strongest card(s) on the field
+  ABILITY_SCORCH,// scorch: kills the strongest card(s) on the field
   ABILITY_COMMANDERS_HORN,  // doubles the strength of all units in the row
 };
 
