@@ -38,7 +38,7 @@ a single translation unit. `shared_defs.h` is the single header included by all 
 it declares all shared types, enums, extern globals, and function prototypes.
 
 ```
-gwent_table.ino   setup() / loop() — hardware init, main polling loop
+gwent_board.ino   setup() / loop() — hardware init, main polling loop
       │
       ├── audio.ino      SD init, WAV parsing, I2S streaming
       ├── input.ino      Touch and RFID init, polling helpers
@@ -243,7 +243,7 @@ Player 1 = RFID1 (index 0), Player 2 = RFID2 (index 1).
 ## Touch Input
 
 XPT2046 returns raw ADC values (0–4095). These are mapped to screen coordinates using
-`touchMinX/MaxX/Y` calibration constants in `gwent_table.ino`:
+`touchMinX/MaxX/Y` calibration constants in `gwent_board.ino`:
 
 ```cpp
 int touchMinX = 200;  int touchMaxX = 3900;
