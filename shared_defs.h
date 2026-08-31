@@ -15,8 +15,15 @@ extern String pendingTrack;
 
 enum CardAbility : uint8_t {
   ABILITY_NONE,
-  ABILITY_DESTROY_STRONGEST,
-  ABILITY_HERO
+  ABILITY_HERO,             // immune to weather and special cards
+  ABILITY_SPY,              // place on opponent's side, draw 2 cards
+  ABILITY_MEDIC,            // revive a card from the discard pile
+  ABILITY_MUSTER,           // play all same-named cards from deck instantly
+  ABILITY_TIGHT_BOND,       // doubles strength with adjacent same-named card
+  ABILITY_MORALE_BOOST,     // adds +1 to all units in the row
+  ABILITY_AGILE,            // can be placed in close or ranged row
+  ABILITY_DESTROY_STRONGEST,// scorch: kills the strongest card(s) on the field
+  ABILITY_COMMANDERS_HORN,  // doubles the strength of all units in the row
 };
 
 struct CardDef {

@@ -1,20 +1,5 @@
 extern const uint8_t PLAYER_COUNT = 2;
-extern const uint8_t CARD_POOL_SIZE = 10;
 extern const uint8_t MAX_PLAYED_PER_PLAYER = 10;
-
-// Replace these placeholder UIDs with the real UIDs printed in Serial Monitor.
-extern const CardDef cardPool[10] = {
-  { "04:9B:27:3D:C1:2A:81", "Geralt",        15, ABILITY_HERO },
-  { "04:92:27:3D:C1:2A:81", "Yennefer",       7, ABILITY_NONE },
-  { "04:93:27:3D:C1:2A:81", "Ciri",          10, ABILITY_HERO },
-  { "04:94:27:3D:C1:2A:81", "Triss",          6, ABILITY_NONE },
-  { "04:95:27:3D:C1:2A:81", "Vesemir",        6, ABILITY_NONE },
-  { "04:96:27:3D:C1:2A:81", "Scorch",         0, ABILITY_DESTROY_STRONGEST },
-  { "04:97:27:3D:C1:2A:81", "Zoltan",         5, ABILITY_NONE },
-  { "04:98:27:3D:C1:2A:81", "Dandelion",      2, ABILITY_NONE },
-  { "04:99:27:3D:C1:2A:81", "Imlerith",      10, ABILITY_NONE },
-  { "04:9A:27:3D:C1:2A:81", "Villentreten",   7, ABILITY_DESTROY_STRONGEST }
-};
 
 PlayedCard playedCards[2][10];
 uint8_t playedCount[2] = { 0, 0 };
@@ -49,10 +34,17 @@ bool cardIsDestroyable(const CardDef &card) {
 
 const char *abilityName(CardAbility ability) {
   switch (ability) {
-    case ABILITY_DESTROY_STRONGEST: return "Destroy strongest";
-    case ABILITY_HERO:              return "Hero";
+    case ABILITY_HERO:             return "Hero";
+    case ABILITY_SPY:              return "Spy";
+    case ABILITY_MEDIC:            return "Medic";
+    case ABILITY_MUSTER:           return "Muster";
+    case ABILITY_TIGHT_BOND:       return "Tight Bond";
+    case ABILITY_MORALE_BOOST:     return "Morale Boost";
+    case ABILITY_AGILE:            return "Agile";
+    case ABILITY_DESTROY_STRONGEST:return "Scorch";
+    case ABILITY_COMMANDERS_HORN:  return "Cmdr's Horn";
     case ABILITY_NONE:
-    default:                        return "None";
+    default:                       return "None";
   }
 }
 
