@@ -26,6 +26,13 @@ enum CardAbility : uint8_t {
   ABILITY_COMMANDERS_HORN,  // doubles the strength of all units in the row
 };
 
+const uint8_t MAX_HAND_SIZE = 20;
+
+enum GamePhase : uint8_t {
+  PHASE_DRAW,
+  PHASE_PLAY,
+};
+
 struct CardDef {
   const char *uid;
   const char *name;
@@ -50,8 +57,16 @@ extern bool playerPassed[];
 extern bool gameOver;
 extern String gameMessage;
 extern String lastPlayedCardName;
+extern GamePhase gamePhase;
+extern uint8_t roundNumber;
+extern uint8_t roundWins[2];
+extern uint8_t handCards[2][MAX_HAND_SIZE];
+extern uint8_t handCount[2];
+extern uint8_t drawsNeeded[2];
+extern String lastDrawnCardName[2];
 
 void drawPlayMessage(const char *msg, uint16_t color = ILI9341_WHITE);
+void drawDrawScreen();
 
 void startNewGame();
 void handleRFIDCardScanned(uint8_t playerIndex, const String &uid);

@@ -180,7 +180,7 @@ void drawPlayerPanel(uint8_t playerIndex, int x, int y, uint16_t color) {
 
   tft.setTextColor(ILI9341_LIGHTGREY);
   tft.setCursor(x + 8, y + 48);
-  tft.printf("Cards: %d", playedCount[playerIndex]);
+  tft.printf("Hand:%u Played:%u", handCount[playerIndex], playedCount[playerIndex]);
 
   for (uint8_t i = 0; i < playedCount[playerIndex] && i < 4; i++) {
     const PlayedCard &played = playedCards[playerIndex][i];
@@ -203,9 +203,9 @@ void drawGameScreen() {
   tft.setTextColor(ILI9341_CYAN);
   tft.setCursor(10, 28);
   if (gameOver) {
-    tft.print("Round complete");
+    tft.print("Game over");
   } else {
-    tft.printf("Turn: Player %d    Cards left: %d", activePlayer + 1, countAvailableCards());
+    tft.printf("P%d turn  Round %d  Wins:%d-%d", activePlayer + 1, roundNumber + 1, roundWins[0], roundWins[1]);
   }
 
   drawPlayerPanel(0, 10, 46, ILI9341_BLUE);
@@ -224,6 +224,56 @@ void drawGameScreen() {
   tft.print(lastPlayedCardName);
 
   drawActionButton(gameOver ? "NEW" : "PASS");
+}
+
+void drawDrawScreen() {
+  deselectAllSPIDevices();
+  tft.fillScreen(ILI9341_BLACK);
+
+  char title[28];
+  snprintf(title, sizeof(title), "DRAW - Round %u of 3", roundNumber + 1);
+  printCentered(title, 6, ILI9341_YELLOW, 2);
+
+  for (uint8_t p = 0; p < 2; p++) {
+    int x = (p == 0) ? 10 : 165;
+    uint16_t col = (p == 0) ? ILI9341_BLUE : ILI9341_RED;
+    if (drawsNeeded[p] == 0) col = ILI9341_DARKGREY;
+
+    tft.drawRect(x, 36, 145, 112, col);
+    tft.setTextColor(col);
+    tft.setTextSize(2);
+    tft.setCursor(x + 8, 44);
+    tft.printf("P%u", p + 1);
+
+    tft.setTextSize(1);
+    tft.setCursor(x + 8, 68);
+    if (drawsNeeded[p] > 0) {
+      tft.setTextColor(ILI9341_WHITE);
+      tft.printf("Scan %u more", drawsNeeded[p]);
+    } else {
+      tft.setTextColor(ILI9341_GREEN);
+      tft.print("Done!");
+    }
+
+    tft.setTextColor(ILI9341_LIGHTGREY);
+    tft.setCursor(x + 8, 82);
+    tft.printf("Hand: %u cards", handCount[p]);
+
+    tft.setTextColor(ILI9341_CYAN);
+    tft.setCursor(x + 8, 96);
+    char nameBuf[18];
+    strncpy(nameBuf, lastDrawnCardName[p].c_str(), 17);
+    nameBuf[17] = '\0';
+    tft.print(nameBuf);
+  }
+
+  tft.drawRect(10, 156, 300, 34, ILI9341_CYAN);
+  tft.setTextSize(1);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setCursor(16, 168);
+  tft.print(gameMessage);
+
+  drawActionButton("SKIP");
 }
 
 void drawCardPlayedAnimation(uint8_t playerIndex, const CardDef &card) {
