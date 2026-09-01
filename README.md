@@ -61,8 +61,9 @@ Install via Arduino Library Manager:
 Format the SD card as FAT32. Place files at these paths:
 
 ```
-/w1.wav          — background music, played at startup
-/w2.wav          — background music, queued after w1
+/Soundtracks/
+  01_opening.wav  — background music; all WAV files play alphabetically and loop
+  02_tavern.wav
 ```
 
 WAV files must be 16-bit PCM (uncompressed). Sample rate and mono/stereo are

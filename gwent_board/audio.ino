@@ -4,6 +4,10 @@ bool audioPlaying = false;
 String currentTrack = "";
 String pendingTrack = "";
 
+const char *SOUNDTRACK_DIRECTORY = "/Soundtracks";
+String lastSoundtrackPath = "";
+bool soundtrackPlaylistEnabled = false;
+
 const size_t AUDIO_CHUNK_SIZE = 4096;
 uint8_t audioBuf[AUDIO_CHUNK_SIZE];
 
@@ -248,6 +252,105 @@ bool startWavFromSD(const char *path) {
   return true;
 }
 
+int comparePathsIgnoreCase(const String &left, const String &right) {
+  size_t commonLength = min(left.length(), right.length());
+
+  for (size_t i = 0; i < commonLength; i++) {
+    char leftChar = (char)tolower((unsigned char)left.charAt(i));
+    char rightChar = (char)tolower((unsigned char)right.charAt(i));
+
+    if (leftChar < rightChar) return -1;
+    if (leftChar > rightChar) return 1;
+  }
+
+  if (left.length() < right.length()) return -1;
+  if (left.length() > right.length()) return 1;
+  return 0;
+}
+
+bool findNextSoundtrackPath(const String &afterPath, String &nextPath) {
+  deselectAllSPIDevices();
+  File directory = SD.open(SOUNDTRACK_DIRECTORY);
+  if (!directory || !directory.isDirectory()) {
+    if (directory) directory.close();
+    return false;
+  }
+
+  String firstPath = "";
+  String pathAfterCurrent = "";
+
+  File entry = directory.openNextFile();
+  while (entry) {
+    if (!entry.isDirectory()) {
+      String filename = entry.name();
+      int lastSlash = filename.lastIndexOf('/');
+      if (lastSlash >= 0) filename = filename.substring(lastSlash + 1);
+
+      String lowercaseFilename = filename;
+      lowercaseFilename.toLowerCase();
+
+      if (filename.length() > 0 && lowercaseFilename.endsWith(".wav")) {
+        String path = String(SOUNDTRACK_DIRECTORY) + "/" + filename;
+
+        if (firstPath.length() == 0 || comparePathsIgnoreCase(path, firstPath) < 0) {
+          firstPath = path;
+        }
+
+        if ((afterPath.length() == 0 || comparePathsIgnoreCase(path, afterPath) > 0) &&
+            (pathAfterCurrent.length() == 0 || comparePathsIgnoreCase(path, pathAfterCurrent) < 0)) {
+          pathAfterCurrent = path;
+        }
+      }
+    }
+
+    entry.close();
+    entry = directory.openNextFile();
+  }
+
+  directory.close();
+
+  // When there is nothing after the current track, wrap to the first track.
+  nextPath = (pathAfterCurrent.length() > 0) ? pathAfterCurrent : firstPath;
+  return nextPath.length() > 0;
+}
+
+bool playNextSoundtrack() {
+  if (!soundtrackPlaylistEnabled || audioPlaying) return false;
+
+  String firstAttempt = "";
+
+  while (true) {
+    String nextPath;
+    if (!findNextSoundtrackPath(lastSoundtrackPath, nextPath)) {
+      Serial.print("No WAV files found in ");
+      Serial.println(SOUNDTRACK_DIRECTORY);
+      soundtrackPlaylistEnabled = false;
+      return false;
+    }
+
+    // Stop after one complete pass if every WAV is unreadable or unsupported.
+    if (firstAttempt.length() == 0) {
+      firstAttempt = nextPath;
+    } else if (nextPath.equalsIgnoreCase(firstAttempt)) {
+      Serial.println("No playable soundtrack WAV files found");
+      soundtrackPlaylistEnabled = false;
+      return false;
+    }
+
+    lastSoundtrackPath = nextPath;
+    if (startWavFromSD(nextPath.c_str())) return true;
+
+    Serial.print("Skipping unplayable soundtrack: ");
+    Serial.println(nextPath);
+  }
+}
+
+bool startSoundtrackPlaylist() {
+  lastSoundtrackPath = "";
+  soundtrackPlaylistEnabled = true;
+  return playNextSoundtrack();
+}
+
 void serviceAudio() {
   if (!audioPlaying) return;
   if (!wavFile) {
@@ -264,7 +367,7 @@ void serviceAudio() {
     if (pendingTrack.length() > 0) {
       String next = pendingTrack;
       pendingTrack = "";
-      startWavFromSD(next.c_str());
+      if (!startWavFromSD(next.c_str())) onAudioPlaybackFinished();
     } else {
       onAudioPlaybackFinished();
     }

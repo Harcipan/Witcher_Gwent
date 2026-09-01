@@ -397,4 +397,5 @@ void redrawGameScreen() {
 
 void onAudioPlaybackFinished() {
   redrawGameScreen();
+  playNextSoundtrack();
 }

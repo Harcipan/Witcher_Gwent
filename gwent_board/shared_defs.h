@@ -73,6 +73,8 @@ void handleRFIDCardScanned(uint8_t playerIndex, const String &uid);
 void handleTouchScreenPressed(int rawX, int rawY);
 void redrawGameScreen();
 void onAudioPlaybackFinished();
+bool startSoundtrackPlaylist();
+bool playNextSoundtrack();
 int getPlayerScore(uint8_t playerIndex);
 uint8_t countAvailableCards();
 const char *abilityName(CardAbility ability);

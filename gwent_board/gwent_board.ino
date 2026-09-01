@@ -125,12 +125,7 @@ void setup() {
   Serial.println("Setup complete.");
 
   if (sdOk && audioOk) {
-    if (SD.exists("/w1.wav")) {
-      if (SD.exists("/w2.wav")) pendingTrack = "/w2.wav";
-      startWavFromSD("/w1.wav");
-    } else if (SD.exists("/w2.wav")) {
-      startWavFromSD("/w2.wav");
-    }
+    startSoundtrackPlaylist();
   }
 }
 

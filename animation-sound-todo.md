@@ -176,8 +176,9 @@ audio will require non-blocking animation playback or a separate streaming task.
 ## SD Card Layout (final)
 
 ```
-/w1.wav                       — existing background music track 1
-/w2.wav                       — existing background music track 2
+/Soundtracks/
+  01_opening.wav              — background tracks play alphabetically and loop
+  02_tavern.wav
 /sounds/
   card_play.wav               — card play sound effect
 /Cards/
