@@ -8,14 +8,14 @@ and coded.
 
 ## Status
 
-- [ ] Source sound file
-- [ ] Convert sound to correct WAV format
-- [ ] Source/create animation frames
-- [ ] Convert frames to raw RGB565 binary
+- [x] Source sound file
+- [x] Convert sound to correct WAV format
+- [x] Source/create animation frames
+- [x] Convert frames to raw RGB565 binary at 320×240
 - [ ] Copy assets to SD card
-- [ ] Add `displayAnimFrame()` helper in `display.ino`
-- [ ] Update `drawCardPlayedAnimation()` to use SD frames
-- [ ] Set `pendingTrack` in `game.ino` when a card is played
+- [x] Add `displayAnimFrame()` helper in `display.ino`
+- [x] Update `drawCardPlayedAnimation()` to use SD frames
+- [x] Set `pendingTrack` in `game.ino` when a card is played
 
 ---
 
@@ -50,7 +50,7 @@ ffmpeg -i input.mp3 -ar 22050 -ac 1 -acodec pcm_s16le card_play.wav
 
 - `-ar 22050` — 22 kHz is sufficient quality and reduces file size vs 44.1 kHz
 - `-ac 1` — mono keeps the file smaller; stereo also works
-- `-acodec pcm_s16le` — unsigned 16-bit little-endian PCM, required by the parser
+- `-acodec pcm_s16le` — signed 16-bit little-endian PCM, required by the parser
 
 ### SD card path
 
@@ -63,26 +63,28 @@ ffmpeg -i input.mp3 -ar 22050 -ac 1 -acodec pcm_s16le card_play.wav
 ## Part 2 — Animation Frames
 
 ### Requirements
-The ILI9341 display is 320×240. The existing card popup occupies a **156×126 px** region
-at screen coordinates `(82, 48)`. Animation frames should match this size.
+The ILI9341 display is 320×240. Every card-play animation frame uses the entire
+screen, starting at `(0, 0)`.
 
 Frames are stored as raw **RGB565 big-endian** binary files — no header, just pixels
-in row-major order. Each frame = `156 × 126 × 2 = 39,312 bytes`.
+in row-major order. Each frame = `320 × 240 × 2 = 153,600 bytes`.
 
-Target: **10–15 frames** at ~15 fps → ~600 KB total on SD.
+The converted asset set in `Cards/converted_flip_magic_320x240` contains 12 frames
+per animation. One animation occupies 1,843,200 bytes (about 1.76 MiB). The code
+targets 15 fps, but actual speed is limited by SD and TFT throughput on the shared SPI bus.
 
 ### Getting frame images
 
 **Option A — Gwent card art still + glow effect:**
 1. Download card artwork from the [Witcher Wiki](https://witcher.fandom.com/wiki/Gwent)
 2. In Photoshop/GIMP, create 10–15 frames showing a golden glow frame appearing, brightening, then fading
-3. Export each frame as PNG at exactly 156×126
+3. Export each frame as PNG at exactly 320×240
 
 **Option B — Animated GIF (card flip / magic burst):**
 1. Find or create a GIF on [Giphy](https://giphy.com) or similar
 2. Extract frames using FFmpeg:
    ```sh
-   ffmpeg -i animation.gif -vf "scale=156:126" frames_in/f%03d.png
+   ffmpeg -i animation.gif -vf "scale=320:240" frames_in/f%03d.png
    ```
 
 **Option C — Simple in-engine effect** (no images needed): skip SD frames entirely and
@@ -98,7 +100,7 @@ Save and run `tools/convert_frames.py` (see below) with your PNG frames in `fram
 from PIL import Image
 import struct, os
 
-W, H = 156, 126
+W, H = 320, 240
 os.makedirs('frames_out', exist_ok=True)
 
 for i, name in enumerate(sorted(f for f in os.listdir('frames_in') if f.endswith('.png'))):
@@ -117,79 +119,44 @@ Requires Python 3 + Pillow: `pip install Pillow`
 
 ### SD card path
 
+Copy the repository's `Cards/converted_flip_magic_320x240` directory to the SD
+card without changing its relative path. Each card has its own frame directory:
+
 ```
-/anim/card_play/f000.bin
-/anim/card_play/f001.bin
+/Cards/converted_flip_magic_320x240/Geralt of Rivia/f000.bin
+/Cards/converted_flip_magic_320x240/Geralt of Rivia/f001.bin
 ...
-/anim/card_play/f014.bin
+/Cards/converted_flip_magic_320x240/Geralt of Rivia/f011.bin
 ```
 
 ---
 
 ## Part 3 — Code Changes
 
-### 3a. `display.ino` — add `displayAnimFrame()` helper
+### 3a. `display.ino` — `displayAnimFrame()` helper
 
-Add above `drawCardPlayedAnimation()`:
+Implemented. The helper validates that a full-screen frame is 153,600 bytes,
+reads it in row-aligned chunks, converts RGB565 big-endian data to native
+`uint16_t` values, and writes each chunk at `(0, 0)` through `(319, 239)`.
 
-```cpp
-// Stream one raw RGB565 frame from SD directly into the display window
-static void displayAnimFrame(const char* path, int x, int y, int w, int h) {
-  File f = SD.open(path);
-  if (!f) return;
-  uint8_t buf[512];
-  deselectAllSPIDevices();
-  tft.startWrite();
-  tft.setAddrWindow(x, y, w, h);
-  while (f.available()) {
-    size_t n = f.read(buf, sizeof(buf));
-    tft.writePixels((uint16_t*)buf, n / 2);
-  }
-  tft.endWrite();
-  f.close();
-}
-```
+The SD card and TFT share SPI. Each SD read is completed before the corresponding
+TFT write transaction begins, so their chip-select lines are never active together.
 
 ### 3b. `display.ino` — update `drawCardPlayedAnimation()`
 
-Replace the flashing loop with SD frame playback, falling back to the
-existing code-drawn animation if no frame files are found:
+Implemented. `drawCardPlayedAnimation()` resolves a directory from `card.name`,
+plays sequential `f000.bin`, `f001.bin`, and later frames full-screen, and stops at
+the first missing frame (up to 30 frames). It supports:
 
-```cpp
-void drawCardPlayedAnimation(uint8_t playerIndex, const CardDef &card) {
-  deselectAllSPIDevices();
+- Exact card-name directories.
+- Repeated-card directories such as `Arachas (1 of 3)`.
+- FAT-safe names where `:` became `_`, such as `Crone_ Brewess`.
+- Known aliases for shortened or unaccented game names.
 
-  // Count available frames (stops at first missing file)
-  uint8_t frameCount = 0;
-  while (frameCount < 30) {
-    char path[40];
-    snprintf(path, sizeof(path), "/anim/card_play/f%03d.bin", frameCount);
-    if (!SD.exists(path)) break;
-    frameCount++;
-  }
-
-  if (frameCount > 0) {
-    for (uint8_t i = 0; i < frameCount; i++) {
-      char path[40];
-      snprintf(path, sizeof(path), "/anim/card_play/f%03d.bin", i);
-      displayAnimFrame(path, 82, 48, 156, 126);
-      delay(66); // ~15 fps
-    }
-  } else {
-    // Fallback: existing code-drawn flash
-    uint16_t frameColor = playerIndex == 0 ? ILI9341_BLUE : ILI9341_RED;
-    for (uint8_t i = 0; i < 3; i++) {
-      tft.fillRoundRect(82, 48, 156, 126, 8, ILI9341_BLACK);
-      tft.drawRoundRect(82, 48, 156, 126, 8, frameColor);
-      tft.drawRoundRect(86, 52, 148, 118, 8, ILI9341_WHITE);
-      delay(80);
-      tft.fillRoundRect(82, 48, 156, 126, 8, frameColor);
-      delay(80);
-    }
-    // ...rest of text overlay unchanged
-  }
-}
-```
+If the card has no usable animation directory or its first frame cannot be displayed,
+the existing code-drawn card animation remains the fallback. The resolver currently
+matches 158 of 161 card definitions. The asset set has no matching directory for Roach,
+Bovine Defense Force, or Hemdall, so those cards use the fallback.
 
 ### 3c. `game.ino` — queue the sound in `handleRFIDCardScanned()`
 
@@ -200,8 +167,9 @@ Find the line `drawCardPlayedAnimation(playerIndex, card);` and add the sound tr
   drawCardPlayedAnimation(playerIndex, card);
 ```
 
-`pendingTrack` is picked up by `serviceAudio()` in the main loop after the current track
-finishes (or immediately if nothing is playing), so the sound begins as the animation starts.
+`pendingTrack` is picked up by `serviceAudio()` after the current track finishes.
+This preserves the existing audio queue behavior; truly synchronized animation and
+audio will require non-blocking animation playback or a separate streaming task.
 
 ---
 
@@ -212,10 +180,12 @@ finishes (or immediately if nothing is playing), so the sound begins as the anim
 /w2.wav                       — existing background music track 2
 /sounds/
   card_play.wav               — card play sound effect
-/anim/
-  card_play/
-    f000.bin                  — animation frame 0  (156×126 px, raw RGB565 BE)
-    f001.bin
-    ...
-    f014.bin
+/Cards/
+  converted_flip_magic_320x240/
+    Geralt of Rivia/
+      f000.bin                — animation frame 0 (320×240, raw RGB565 BE)
+      f001.bin
+      ...
+      f011.bin
+    ...                       — other card animation directories
 ```

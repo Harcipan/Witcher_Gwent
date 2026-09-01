@@ -276,9 +276,156 @@ void drawDrawScreen() {
   drawActionButton("SKIP");
 }
 
+static const char *CARD_ANIMATION_ROOT = "/Cards/converted_flip_magic_320x240";
+static const uint16_t ANIMATION_WIDTH = 320;
+static const uint16_t ANIMATION_HEIGHT = 240;
+static const uint16_t ANIMATION_FRAME_INTERVAL_MS = 66;
+static const uint8_t MAX_ANIMATION_FRAMES = 30;
+
+// Some names used by the game are shorter or omit accents found in the asset folders.
+static const char *animationAssetAlias(const char *cardName) {
+  if (strcmp(cardName, "Ciri") == 0) return "Cirilla Fiona Elen Riannon";
+  if (strcmp(cardName, "Emiel Regis") == 0) return "Emiel Regis Rohellec Terzieff";
+  if (strcmp(cardName, "Sile de Tansarville") == 0) return "S\xC3\xADle de Tansarville";
+  if (strcmp(cardName, "Eithne") == 0) return "Eithn\xC3\xA9";
+  if (strcmp(cardName, "Schirru") == 0) return "Schirr\xC3\xBA";
+  return nullptr;
+}
+
+static bool animationDirectoryExists(const String &directory) {
+  String firstFrame = directory + "/f000.bin";
+  deselectAllSPIDevices();
+  bool exists = SD.exists(firstFrame.c_str());
+  deselectAllSPIDevices();
+  return exists;
+}
+
+static bool tryAnimationAssetName(const String &assetName, String &directory) {
+  String candidate = String(CARD_ANIMATION_ROOT) + "/" + assetName;
+  if (animationDirectoryExists(candidate)) {
+    directory = candidate;
+    return true;
+  }
+
+  // Repeated cards are stored as "Name (1 of N)". Use the first copy's animation.
+  for (uint8_t copyCount = 2; copyCount <= 5; copyCount++) {
+    candidate = String(CARD_ANIMATION_ROOT) + "/" + assetName
+              + " (1 of " + String(copyCount) + ")";
+    if (animationDirectoryExists(candidate)) {
+      directory = candidate;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool findCardAnimationDirectory(const CardDef &card, String &directory) {
+  if (!sdOk) return false;
+  if (tryAnimationAssetName(card.name, directory)) return true;
+
+  // FAT filenames cannot contain ':', so converted folders use '_' instead.
+  String normalizedName = card.name;
+  normalizedName.replace(':', '_');
+  if (normalizedName != card.name && tryAnimationAssetName(normalizedName, directory)) {
+    return true;
+  }
+
+  const char *alias = animationAssetAlias(card.name);
+  return alias != nullptr && tryAnimationAssetName(alias, directory);
+}
+
+// Stream one raw RGB565 big-endian frame from SD to the display. SD and TFT
+// share SPI, so each chunk is read before its separate TFT write transaction.
+static bool displayAnimFrame(const char *path, int x, int y, int w, int h) {
+  if (!sdOk || w <= 0 || h <= 0 || x < 0 || y < 0
+      || x + w > tft.width() || y + h > tft.height()) {
+    return false;
+  }
+
+  deselectAllSPIDevices();
+  File frameFile = SD.open(path, FILE_READ);
+  if (!frameFile) {
+    Serial.print("Animation frame not found: ");
+    Serial.println(path);
+    return false;
+  }
+
+  const uint32_t expectedBytes = (uint32_t)w * (uint32_t)h * 2U;
+  if ((uint32_t)frameFile.size() != expectedBytes) {
+    Serial.printf("Invalid animation frame size: %s (%u, expected %u)\n",
+                  path, (unsigned int)frameFile.size(), (unsigned int)expectedBytes);
+    frameFile.close();
+    return false;
+  }
+
+  const size_t PIXEL_BUFFER_SIZE = ANIMATION_WIDTH * 8;
+  static uint16_t pixelBuffer[PIXEL_BUFFER_SIZE];
+  const int rowsPerChunk = (int)(PIXEL_BUFFER_SIZE / (size_t)w);
+
+  for (int row = 0; row < h;) {
+    int rows = h - row;
+    if (rows > rowsPerChunk) rows = rowsPerChunk;
+    const size_t pixelCount = (size_t)w * (size_t)rows;
+    const size_t byteCount = pixelCount * 2U;
+
+    deselectAllSPIDevices();
+    size_t bytesRead = frameFile.read((uint8_t *)pixelBuffer, byteCount);
+    if (bytesRead != byteCount) {
+      Serial.print("Animation frame read failed: ");
+      Serial.println(path);
+      frameFile.close();
+      return false;
+    }
+
+    // Convert the file's big-endian bytes to native uint16_t RGB565 values.
+    for (size_t i = 0; i < pixelCount; i++) {
+      pixelBuffer[i] = (pixelBuffer[i] >> 8) | (pixelBuffer[i] << 8);
+    }
+
+    deselectAllSPIDevices();
+    tft.startWrite();
+    tft.setAddrWindow(x, y + row, w, rows);
+    tft.writePixels(pixelBuffer, pixelCount);
+    tft.endWrite();
+    row += rows;
+  }
+
+  deselectAllSPIDevices();
+  frameFile.close();
+  deselectAllSPIDevices();
+  return true;
+}
+
 void drawCardPlayedAnimation(uint8_t playerIndex, const CardDef &card) {
   deselectAllSPIDevices();
 
+  String animationDirectory;
+  if (findCardAnimationDirectory(card, animationDirectory)) {
+    bool displayedAnyFrame = false;
+
+    for (uint8_t frameIndex = 0; frameIndex < MAX_ANIMATION_FRAMES; frameIndex++) {
+      char path[192];
+      snprintf(path, sizeof(path), "%s/f%03u.bin",
+               animationDirectory.c_str(), frameIndex);
+
+      deselectAllSPIDevices();
+      if (!SD.exists(path)) break;
+
+      uint32_t frameStartedAt = millis();
+      if (!displayAnimFrame(path, 0, 0, ANIMATION_WIDTH, ANIMATION_HEIGHT)) break;
+      displayedAnyFrame = true;
+
+      uint32_t elapsed = millis() - frameStartedAt;
+      if (elapsed < ANIMATION_FRAME_INTERVAL_MS) {
+        delay(ANIMATION_FRAME_INTERVAL_MS - elapsed);
+      }
+    }
+
+    if (displayedAnyFrame) return;
+  }
+
+  // Keep the original code-drawn animation as a fallback for missing assets.
   uint16_t frameColor = playerIndex == 0 ? ILI9341_BLUE : ILI9341_RED;
   for (uint8_t i = 0; i < 3; i++) {
     tft.fillRoundRect(82, 48, 156, 126, 8, ILI9341_BLACK);

@@ -354,6 +354,7 @@ void handleRFIDCardScanned(uint8_t playerIndex, const String &uid) {
 
   Serial.printf("P%u played %s UID %s\n", playerIndex + 1, card.name, uid.c_str());
 
+  pendingTrack = "/sounds/card_play.wav";
   drawCardPlayedAnimation(playerIndex, card);
   applyCardAbility(playerIndex, card);
 
